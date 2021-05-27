@@ -137,12 +137,16 @@ class AuthenticatedResource(Resource):
             person = persons_service.get_person_by_email(get_jwt_identity())
             del person["password"]
             organisation = persons_service.get_organisation()
-            return {
+            data = {
                 "authenticated": True,
                 "user": person,
                 "organisation": organisation,
                 "ldap": app.config["AUTH_STRATEGY"] == "auth_remote_ldap",
             }
+            if is_from_browser(request.user_agent):
+                data['access_token'] = request.cookies.get('access_token_cookie')
+
+            return data
         except PersonNotFoundException:
             abort(401)
 
@@ -220,6 +224,7 @@ class LoginResource(Resource):
                         "ldap": app.config["AUTH_STRATEGY"]
                         == "auth_remote_ldap",
                         "login": True,
+                        "access_token": access_token
                     }
                 )
                 set_access_cookies(response, access_token)
